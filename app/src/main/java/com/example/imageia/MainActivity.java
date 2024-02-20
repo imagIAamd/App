@@ -24,14 +24,18 @@ public class MainActivity extends AppCompatActivity {
 
         binding.bottomNavigationView.setOnItemSelectedListener(item -> {
 
-            int itemId = item.getItemId();
-            if (itemId == HISTORIAL_ID) {
-                replaceFragment(new HistoryFragment());
-            } else if (itemId == PROFILE_ID) {
-                replaceFragment(new ProfileFragment());
+            switch (item.getItemId()) {
+                case R.id.historial:
+                    replaceFragment(new HistoryFragment());
+                    break;
+                case R.id.profile:
+                    replaceFragment(new ProfileFragment());
+                    break;
+                case R.id.ullada:
+                    replaceFragment(new UlladaFragment());
+                    break;
             }
             return true;
-
         });
 
 
