@@ -2,6 +2,8 @@ package com.example.imageia;
 
 import static android.app.ProgressDialog.show;
 
+import static com.example.imageia.HttpPostManager.textToSpeech;
+
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -28,6 +30,7 @@ import androidx.lifecycle.LifecycleOwner;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -96,7 +99,15 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
         listener = new HttpPostManager.OnResponseListener() {
             @Override
             public void onResponse(String response) {
-                // Handle successful response here, e.g., parse JSON data
+
+                try {
+                    JSONObject r = new JSONObject(response);
+                    String msn = r.getString("aggregatedResponse");
+                    textToSpeech.speak(msn, TextToSpeech.QUEUE_ADD, null, null);
+                } catch (Exception e) {
+                    Log.e("HttpPostRequest", "Error: " + e.getMessage());
+                }
+
                 Log.d("HttpPostRequest", "Response: " + response);
             }
 
@@ -115,6 +126,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
         super.onViewCreated(view, savedInstanceState);
         if (allPermissionsGranted()) {
             initializeCamera(); // Iniciar la cámara si el usuario ha otorgado los permisos
+            initiateTextSpeech();
         } else {
             ActivityCompat.requestPermissions(requireActivity(), REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
@@ -133,6 +145,20 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
             }
         }, ContextCompat.getMainExecutor(requireContext()));
 
+    }
+
+    private void initiateTextSpeech() {
+        textToSpeech = new TextToSpeech(requireActivity().getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
+                    // Engine is ready for use
+                } else {}
+            }
+        });
+        textToSpeech.setLanguage(Locale.US); // Set language
+        textToSpeech.setPitch(1.0f); // Set pitch
+        textToSpeech.setSpeechRate(0.8f); // Set speech rate
     }
 
     // Método para enlazar la vista previa con la cámara
@@ -247,7 +273,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                     .put("token", token)
                     .put("images", new JSONArray(imageList));
 
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/", data, listener);
+            HttpPostManager.sendPostRequest("https://ams22.ieti.site/data", data, listener);
         } catch (Exception e) {
             e.printStackTrace(); // Handle exception properly
         }
@@ -307,6 +333,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     @Override
     public void onPause() {
         super.onPause();
+        textToSpeech.shutdown();
         if (sensorManager != null) {
             Log.i("ULLADA","onPause sensor!=null");
             sensorManager.unregisterListener(this);
@@ -323,12 +350,14 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     @Override
     public void onStop() {
         super.onStop();
+        textToSpeech.shutdown();
         Log.i("ULLADA", "onStop");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        textToSpeech.shutdown();
         Log.i("ULLADA","onDestroy");
     }
 }

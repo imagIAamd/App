@@ -3,7 +3,9 @@ package com.example.imageia;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.speech.tts.TextToSpeech;
 import android.util.Base64;
+import android.util.Log;
 
 import org.json.JSONObject;
 
@@ -11,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Locale;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -20,6 +23,7 @@ import okhttp3.Response;
 
 
 public class HttpPostManager {
+    public static TextToSpeech textToSpeech;
 
     public static interface OnResponseListener {
         void onResponse(String response);
