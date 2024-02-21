@@ -259,7 +259,8 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     //Funcion para enviar imagen al server
     public void sendPicture(File image) {
         try {
-            String imageBase64 = HttpPostManager.encodeImageToBase64(image);
+            String imageBase64 =
+                    HttpPostManager.encodeImageToBase64(image);
             String prompt = "Describe this image";
             String token = "A000000000";
 
@@ -268,12 +269,21 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
             imageList.add(imageBase64);
 
             // Create the data object
+            JSONArray images = new JSONArray();
+            for (int i = 0; i < imageList.size(); i++) {
+                JSONObject row = new JSONObject();
+                row.put("image", imageList.get(i));
+                images.put(row);
+            }
+            JSONObject body = new JSONObject();
             JSONObject data = new JSONObject()
                     .put("prompt", prompt)
                     .put("token", token)
-                    .put("images", new JSONArray(imageList));
+                    .put("images", images);
+            body.put("data", data);
 
-            HttpPostManager.sendPostRequest("https://ams22.ieti.site/data", data, listener);
+            System.out.println(body.toString(5));
+            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/maria/image", body, listener);
         } catch (Exception e) {
             e.printStackTrace(); // Handle exception properly
         }

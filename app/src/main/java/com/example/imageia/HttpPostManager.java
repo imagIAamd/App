@@ -4,7 +4,6 @@ package com.example.imageia;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
-import android.util.Base64;
 import android.util.Log;
 
 import org.json.JSONObject;
@@ -13,7 +12,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Locale;
+import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -37,16 +39,16 @@ public class HttpPostManager {
         }
 
         // Read the image file into a byte array
-        byte[] imageBytes = new byte[(int) imageFile.length()];
-        FileInputStream inputStream = new FileInputStream(imageFile);
-        try {
-            inputStream.read(imageBytes);
-        } finally {
-            inputStream.close();
+        byte[] imageBytes = new byte[0];
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            imageBytes = Files.readAllBytes(imageFile.toPath());
         }
 
         // Encode the byte array to base64 string
-        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        String encodedImage = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            encodedImage = Base64.getEncoder().encodeToString(imageBytes);
+        }
 
         return encodedImage;
     }
@@ -56,7 +58,7 @@ public class HttpPostManager {
         // Use a new thread for network operations
         new Thread(() -> {
             try {
-                OkHttpClient client = new OkHttpClient();
+                OkHttpClient client = new OkHttpClient.Builder().connectTimeout(1, TimeUnit.MINUTES).build();
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
                 RequestBody requestBody = RequestBody.create(JSON, jsonObject.toString());
