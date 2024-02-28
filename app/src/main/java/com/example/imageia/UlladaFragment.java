@@ -44,6 +44,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.net.ConnectException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -52,6 +53,9 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 
 public class UlladaFragment extends Fragment implements SensorEventListener {
 
@@ -68,6 +72,8 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     Preview preview;
     Camera camera;
     HttpPostManager.OnResponseListener listener;
+    private boolean receivingData = false;
+
 
     private boolean toastShown = false; // Bandera para controlar la visualización de los toasts
     private long lastTime = 0; // Último tiempo en el que se detectó un movimiento
@@ -106,15 +112,20 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                     textToSpeech.speak(msn, TextToSpeech.QUEUE_ADD, null, null);
                 } catch (Exception e) {
                     Log.e("HttpPostRequest", "Error: " + e.getMessage());
-                }
+                    showConnectionErrorToast();
 
+                }
                 Log.d("HttpPostRequest", "Response: " + response);
+                receivingData = false;
             }
 
             @Override
             public void onError(Exception e) {
                 // Handle error here, e.g., display error message to user
                 Log.e("HttpPostRequest", "Error: " + e.getMessage());
+                showConnectionErrorToast();
+
+                receivingData = false;
             }
         };
         return view;
@@ -226,8 +237,10 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     }
 
     // Método para capturar una foto
+    // Método para capturar una foto
     private void makeFoto() {
-        if (imageCapture != null) {
+        // Verificar si no se está recibiendo información del servidor
+        if (!receivingData && imageCapture != null) {
             SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyyMMddHHmmss", Locale.US);
             File file = new File(requireActivity().getFilesDir(), mDateFormat.format(new Date()) + ".jpg");
             Log.d("Etiqueta", file.getPath());
@@ -252,15 +265,17 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 e.printStackTrace();
             }
         } else {
-            Log.e("UlladaFragment", "imageCapture is null");
+            // Mostrar un mensaje o realizar alguna acción para indicar que no se puede capturar la foto en este momento
+            Toast.makeText(requireContext(), "Cannot capture photo while receiving data from server", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     //Funcion para enviar imagen al server
     public void sendPicture(File image) {
         try {
-            String imageBase64 =
-                    HttpPostManager.encodeImageToBase64(image);
+            receivingData = true;
+            String imageBase64 = HttpPostManager.encodeImageToBase64(image);
             String prompt = "Describe this image";
             String token = "A000000000";
 
@@ -286,7 +301,30 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
             HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/maria/image", body, listener);
         } catch (Exception e) {
             e.printStackTrace(); // Handle exception properly
+            receivingData = false;
+            // Show a toast indicating connection error
+            if (e instanceof ConnectException) {
+                String errorMessage = e.getMessage();
+                if (errorMessage.contains("failed to connect")) {
+                    showConnectionErrorToast();
+                }
+            }
         }
+    }
+
+    // Método para mostrar un Toast
+    private void showToast(String message) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    // Método para mostrar un Toast de error de conexión en el hilo principal
+    private void showConnectionErrorToast() {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                showToast("No se pudo conectar al servidor");
+            }
+        });
     }
 
 
@@ -343,31 +381,34 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     @Override
     public void onPause() {
         super.onPause();
-        textToSpeech.shutdown();
+        if (textToSpeech != null) {
+            textToSpeech.shutdown();
+        }
         if (sensorManager != null) {
-            Log.i("ULLADA","onPause sensor!=null");
             sensorManager.unregisterListener(this);
         }
         if (cameraProviderFuture != null) {
-            Log.i("ULLADA","onPause cameraProviderFuture!=null");
             cameraProvider.unbindAll();
-            cameraProviderFuture.cancel(true); // Cancel the future to release resources
-            cameraProviderFuture = null; // Release reference to the future
-
+            cameraProviderFuture.cancel(true);
+            cameraProviderFuture = null;
         }
     }
+
 
     @Override
     public void onStop() {
         super.onStop();
-        textToSpeech.shutdown();
-        Log.i("ULLADA", "onStop");
+        if (textToSpeech != null) {
+            textToSpeech.shutdown();
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        textToSpeech.shutdown();
-        Log.i("ULLADA","onDestroy");
+        if (textToSpeech != null) {
+            textToSpeech.shutdown();
+        }
     }
+
 }
