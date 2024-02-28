@@ -73,8 +73,6 @@ public class InicioFragment extends Fragment {
                 // Enviar los datos del usuario
                 sendUserDataToServer(correo, usuario, telefono);
 
-                // Pasar al siguiente fragmento sin esperar la respuesta del servidor
-
             }
         });
 
@@ -171,12 +169,8 @@ public class InicioFragment extends Fragment {
             userData.put("email", correo);
             userData.put("phone", telefono);
 
-            // Crear el objeto JSON con el formato solicitado
-            JSONObject requestData = new JSONObject();
-            requestData.put("data", userData);
-
             // Enviar la solicitud al servidor
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/register", requestData, new HttpPostManager.OnResponseListener() {
+            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/register", userData, new HttpPostManager.OnResponseListener() {
                 @Override
                 public void onResponse(String response) {
                     try {
@@ -185,8 +179,6 @@ public class InicioFragment extends Fragment {
                         if (status.equals("OK")) {
                             // Si el estado es "OK", mostrar el diálogo y enviar la solicitud de validación
                             mostrarDialogoValidacion(correo, usuario, telefono);
-                        } else {
-                            // Manejar otros estados si es necesario
                         }
                     } catch (JSONException e) {
                         Log.e("HttpPostRequest", "Error: " + e.getMessage());
@@ -194,21 +186,18 @@ public class InicioFragment extends Fragment {
 
                     }
                 }
-
                 @Override
                 public void onError(Exception e) {
                     Log.e("HttpPostRequest", "Error: " + e.getMessage());
                     // Manejar errores de la solicitud HTTP
                     showConnectionErrorToast();
-
                 }
             });
 
-            System.out.println(requestData.toString(5));
+            System.out.println(userData.toString(5));
         } catch (JSONException e) {
             Log.e("HttpPostRequest", "Error: " + e.getMessage());
             showConnectionErrorToast();
-
         }
     }
 
@@ -236,7 +225,6 @@ public class InicioFragment extends Fragment {
                 dialog.dismiss();
             }
         });
-
         builder.show();
     }
 
@@ -244,25 +232,20 @@ public class InicioFragment extends Fragment {
     private void sendValidationRequest(String correo, String usuario, String telefono, String codigoValidacion) {
         try {
             // Crear el objeto JSON con los datos del usuario
-            JSONObject userData = new JSONObject();
-            userData.put("name", usuario);
-            userData.put("email", correo);
-            userData.put("phone", telefono);
-            userData.put("validation_code", codigoValidacion);
+            JSONObject userValidation = new JSONObject();
+            userValidation.put("nickname", usuario);
+            userValidation.put("validation_code", codigoValidacion);
 
-            // Crear el objeto JSON con el formato solicitado
-            JSONObject requestData = new JSONObject();
-            requestData.put("data", userData);
 
             // Enviar la solicitud de validación al servidor
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/validate", requestData, new HttpPostManager.OnResponseListener() {
+            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/validate", userValidation, new HttpPostManager.OnResponseListener() {
                 @Override
                 public void onResponse(String response) {
                     // Manejar la respuesta del servidor a la solicitud de validación
                     try {
                         JSONObject jsonResponse = new JSONObject(response);
-                        String status = jsonResponse.getString("status");
-                        if (status.equals("OK")) {
+                        String status = jsonResponse.getString("MESSAGE");
+                        if (status.equals("User successfully validated")) {
                             // Si el estado es "OK", mostrar el diálogo y enviar la solicitud de validación
                             goToProfileFragment(correo, usuario, telefono);
                         }
@@ -296,7 +279,6 @@ public class InicioFragment extends Fragment {
                     String serieNumeros = body.trim();
                     // Procesar la serie de números como desees
                     // Por ejemplo, mostrarla en un diálogo
-
                 } finally {
                     cursor.close();
                 }
