@@ -167,7 +167,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 } else {}
             }
         });
-        textToSpeech.setLanguage(Locale.US); // Set language
+        textToSpeech.setLanguage(new Locale("es", "ES")); // Configurar el idioma a español
         textToSpeech.setPitch(1.0f); // Set pitch
         textToSpeech.setSpeechRate(0.8f); // Set speech rate
     }
