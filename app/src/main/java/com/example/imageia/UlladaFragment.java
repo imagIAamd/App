@@ -290,7 +290,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
         try {
             receivingData = true;
             String imageBase64 = HttpPostManager.encodeImageToBase64(image);
-            String prompt = "Describe this image";
+            String prompt = "Describe this image in Spanish";
             String model = "llava";
 
             // List of base64 encoded images

@@ -63,6 +63,7 @@ public class InicioFragment extends Fragment {
         btnContinuar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                btnContinuar.setEnabled(false);
                 String correo = editTextCorreo.getText().toString();
                 String usuario = editTextUsuario.getText().toString();
                 String telefono = editTextTelefono.getText().toString();
@@ -188,6 +189,7 @@ public class InicioFragment extends Fragment {
                 }
                 @Override
                 public void onError(Exception e) {
+                    btnContinuar.setEnabled(true);
                     Log.e("HttpPostRequest", "Error: " + e.getMessage());
                     // Manejar errores de la solicitud HTTP
                     showConnectionErrorToast();
