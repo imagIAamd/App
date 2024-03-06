@@ -165,12 +165,12 @@ public class InicioFragment extends Fragment {
         try {
             // Crear el objeto JSON con los datos del usuario
             JSONObject userData = new JSONObject();
-            userData.put("name", usuario);
+            userData.put("nickname", usuario);
             userData.put("email", correo);
-            userData.put("phone", telefono);
+            userData.put("phone_number", telefono);
 
             // Enviar la solicitud al servidor
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/register", userData, new HttpPostManager.OnResponseListener() {
+            HttpPostManager.sendPostRequest("https://ams26.ieti.site/api/maria/user/register", userData, new HttpPostManager.OnResponseListener() {
                 @Override
                 public void onResponse(String response) {
                     try {
@@ -219,34 +219,44 @@ public class InicioFragment extends Fragment {
         builder.setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String codigoValidacion = input.getText().toString();
-                // Aquí puedes enviar la solicitud de validación al servidor
-                sendValidationRequest(correo, usuario, telefono, codigoValidacion);
-                dialog.dismiss();
+                String codigoValidacionStr = input.getText().toString();
+                try {
+                    int codigoValidacion = Integer.parseInt(codigoValidacionStr);
+                    // Aquí puedes enviar la solicitud de validación al servidor
+                    sendValidationRequest(correo, usuario, telefono, codigoValidacion);
+                    dialog.dismiss();
+                } catch (NumberFormatException e) {
+                    // El texto ingresado no es un número válido
+                    Toast.makeText(requireContext(), "Por favor, ingrese un código de validación válido", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         builder.show();
     }
 
 
-    private void sendValidationRequest(String correo, String usuario, String telefono, String codigoValidacion) {
+    private void sendValidationRequest(String correo, String usuario, String telefono, int codigoValidacion) {
         try {
             // Crear el objeto JSON con los datos del usuario
             JSONObject userValidation = new JSONObject();
-            userValidation.put("nickname", usuario);
+            userValidation.put("phone_number", telefono);
             userValidation.put("validation_code", codigoValidacion);
 
+            System.out.println(userValidation);
 
             // Enviar la solicitud de validación al servidor
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/user/validate", userValidation, new HttpPostManager.OnResponseListener() {
+            HttpPostManager.sendPostRequest("https://ams26.ieti.site/api/maria/user/validate", userValidation, new HttpPostManager.OnResponseListener() {
                 @Override
                 public void onResponse(String response) {
                     // Manejar la respuesta del servidor a la solicitud de validación
                     try {
                         JSONObject jsonResponse = new JSONObject(response);
-                        String status = jsonResponse.getString("MESSAGE");
+                        String status = jsonResponse.getString("message");
                         if (status.equals("User successfully validated")) {
                             // Si el estado es "OK", mostrar el diálogo y enviar la solicitud de validación
+                            JSONObject data = jsonResponse.getJSONObject("data");
+                            String apyKey = data.getString("access_key");
+                            saveApyKey(apyKey);
                             goToProfileFragment(correo, usuario, telefono);
                         }
                     } catch (JSONException e) {
@@ -299,5 +309,25 @@ public class InicioFragment extends Fragment {
                 showToast("No se pudo conectar al servidor");
             }
         });
+    }
+
+    private void saveApyKey(String key) {
+        // Creamos el contenido SVG con los datos
+        String svgContent = "<svg width=\"100\" height=\"100\">\n" +
+                "  <text x=\"10\" y=\"20\">Key: " + key +
+                "</svg>";
+
+        // Guardamos el contenido SVG en un archivo
+        File file = new File(requireContext().getFilesDir(), "key.svg");
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            OutputStreamWriter writer = new OutputStreamWriter(fos);
+            writer.write(svgContent);
+            writer.close();
+            fos.close();
+            Log.d("InicioFragment", "Datos guardados en archivo SVG");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

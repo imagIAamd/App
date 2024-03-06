@@ -4,6 +4,8 @@ import static android.app.ProgressDialog.show;
 
 import static com.example.imageia.HttpPostManager.textToSpeech;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -43,7 +45,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -85,11 +91,13 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     private ImageCapture imageCapture; // Variable de instancia para ImageCapture
     private Button captureImage; // Botón para capturar la imagen
 
+    private String key ;
 
 
     // Método para "inflar" el diseño de fragmento y devolver su vista
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        readDataFromSVG();
         View view = inflater.inflate(R.layout.fragment_ullada, container, false);
         mPreviewView = view.findViewById(R.id.preview);
         captureImage = view.findViewById(R.id.captureImg);
@@ -109,7 +117,13 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 try {
                     JSONObject r = new JSONObject(response);
                     String msn = r.getString("aggregatedResponse");
-                    textToSpeech.speak(msn, TextToSpeech.QUEUE_ADD, null, null);
+                    if (msn.equals("Ya has llegado al máximo de peticiones")) {
+                        // Mostrar diálogo de advertencia
+                        showMaxRequestsDialog();
+                    } else {
+                        // Leer el mensaje en voz alta
+                        textToSpeech.speak(msn, TextToSpeech.QUEUE_ADD, null, null);
+                    }
                 } catch (Exception e) {
                     Log.e("HttpPostRequest", "Error: " + e.getMessage());
                     showConnectionErrorToast();
@@ -277,7 +291,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
             receivingData = true;
             String imageBase64 = HttpPostManager.encodeImageToBase64(image);
             String prompt = "Describe this image";
-            String token = "A000000000";
+            String model = "llava";
 
             // List of base64 encoded images
             List<String> imageList = new ArrayList<>();
@@ -293,12 +307,12 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
             JSONObject body = new JSONObject();
             JSONObject data = new JSONObject()
                     .put("prompt", prompt)
-                    .put("token", token)
+                    .put("model", model)
                     .put("images", images);
             body.put("data", data);
 
             System.out.println(body.toString(5));
-            HttpPostManager.sendPostRequest("http://10.0.2.2:3000/api/maria/image", body, listener);
+            HttpPostManager.sendPostImageRequest(key,"https://ams26.ieti.site/api/maria/image", body, listener);
         } catch (Exception e) {
             e.printStackTrace(); // Handle exception properly
             receivingData = false;
@@ -411,4 +425,56 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
         }
     }
 
+    private void readDataFromSVG() {
+        // Ruta del archivo SVG
+        File file = new File(requireContext().getFilesDir(), "key.svg");
+
+        // Verificar si el archivo existe
+        if (file.exists()) {
+            try {
+                FileInputStream fis = new FileInputStream(file);
+                InputStreamReader isr = new InputStreamReader(fis);
+                BufferedReader br = new BufferedReader(isr);
+
+                // Leer cada línea del archivo SVG
+                String line;
+                while ((line = br.readLine()) != null) {
+                    // Procesar la línea para obtener los datos
+                    if (line.contains("key:")) {
+                        key = line.substring(line.indexOf(":") + 2);
+                    } else if (line.contains("Usuario:")) {
+                        String usuario = line.substring(line.indexOf(":") + 2);
+
+                    } else if (line.contains("Teléfono:")) {
+                        String telefono = line.substring(line.indexOf(":") + 2);
+                    }
+                }
+
+                br.close();
+                isr.close();
+                fis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e("ProfileFragment", "Error al leer el archivo SVG: " + e.getMessage());
+            }
+        } else {
+            Log.e("ProfileFragment", "El archivo SVG no existe");
+        }
+    }
+    // Método para mostrar un diálogo de advertencia cuando se llega al máximo de peticiones
+    private void showMaxRequestsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Aviso")
+                .setMessage("Ya has llegado al máximo de peticiones.")
+                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Cerrar el diálogo
+                        dialog.dismiss();
+                        // Aquí puedes agregar cualquier acción adicional que necesites realizar después de aceptar el diálogo
+                    }
+                })
+                .setCancelable(false) // No se puede cerrar presionando fuera del diálogo
+                .show();
+    }
 }
