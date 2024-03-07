@@ -28,9 +28,12 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import android.Manifest;
 import android.widget.Toast;
@@ -53,6 +56,7 @@ public class InicioFragment extends Fragment {
         editTextUsuario = rootView.findViewById(R.id.editTextUsuario);
         editTextTelefono = rootView.findViewById(R.id.editTextTelefono);
         btnContinuar = rootView.findViewById(R.id.btnContinuar);
+
 
         btnContinuar.setEnabled(false);
 
@@ -316,8 +320,7 @@ public class InicioFragment extends Fragment {
     private void saveApyKey(String key) {
         // Creamos el contenido SVG con los datos
         String svgContent = "<svg width=\"100\" height=\"100\">\n" +
-                "  <text x=\"10\" y=\"20\">Key: " + key +
-                "</svg>";
+                "  <text x=\"10\" y=\"20\">Key: " + key;
 
         // Guardamos el contenido SVG en un archivo
         File file = new File(requireContext().getFilesDir(), "key.svg");
@@ -332,4 +335,6 @@ public class InicioFragment extends Fragment {
             e.printStackTrace();
         }
     }
+
+
 }

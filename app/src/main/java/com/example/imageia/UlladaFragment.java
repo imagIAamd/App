@@ -91,13 +91,11 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
     private ImageCapture imageCapture; // Variable de instancia para ImageCapture
     private Button captureImage; // Botón para capturar la imagen
 
-    private String key ;
 
 
     // Método para "inflar" el diseño de fragmento y devolver su vista
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        readDataFromSVG();
         View view = inflater.inflate(R.layout.fragment_ullada, container, false);
         mPreviewView = view.findViewById(R.id.preview);
         captureImage = view.findViewById(R.id.captureImg);
@@ -290,7 +288,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
         try {
             receivingData = true;
             String imageBase64 = HttpPostManager.encodeImageToBase64(image);
-            String prompt = "Describe this image in Spanish";
+            String prompt = "Describe esta imagen";
             String model = "llava";
 
             // List of base64 encoded images
@@ -304,14 +302,14 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 row.put("image", imageList.get(i));
                 images.put(row);
             }
-            JSONObject body = new JSONObject();
-            JSONObject data = new JSONObject()
+            JSONObject body = new JSONObject()
                     .put("prompt", prompt)
                     .put("model", model)
                     .put("images", images);
-            body.put("data", data);
 
-            System.out.println(body.toString(5));
+            // System.out.println(body.toString(5));
+            String key = getKeyFromSVG();
+            Log.d("key=",key);
             HttpPostManager.sendPostImageRequest(key,"https://ams26.ieti.site/api/maria/image", body, listener);
         } catch (Exception e) {
             e.printStackTrace(); // Handle exception properly
@@ -440,8 +438,7 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 String line;
                 while ((line = br.readLine()) != null) {
                     // Procesar la línea para obtener los datos
-                    if (line.contains("key:")) {
-                        key = line.substring(line.indexOf(":") + 2);
+                    if (line.contains("Key:")) {
                     } else if (line.contains("Usuario:")) {
                         String usuario = line.substring(line.indexOf(":") + 2);
 
@@ -476,5 +473,42 @@ public class UlladaFragment extends Fragment implements SensorEventListener {
                 })
                 .setCancelable(false) // No se puede cerrar presionando fuera del diálogo
                 .show();
+    }
+    public String getKeyFromSVG() {
+        // Ruta del archivo SVG
+        File file = new File(requireContext().getFilesDir(), "key.svg");
+
+        // Inicializar la variable para almacenar la clave
+        String key = "";
+
+        // Verificar si el archivo existe
+        if (file.exists()) {
+            try {
+                FileInputStream fis = new FileInputStream(file);
+                InputStreamReader isr = new InputStreamReader(fis);
+                BufferedReader br = new BufferedReader(isr);
+
+                // Leer cada línea del archivo SVG
+                String line;
+                while ((line = br.readLine()) != null) {
+                    // Procesar la línea para obtener el valor de 'key'
+                    if (line.contains("Key:")) {
+                        key = line.substring(line.indexOf(":") + 2);
+                        break; // Una vez que se encuentra el valor de 'key', salir del bucle
+                    }
+                }
+
+                br.close();
+                isr.close();
+                fis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e("InicioFragment", "Error al leer el archivo SVG: " + e.getMessage());
+            }
+        } else {
+            Log.e("InicioFragment", "El archivo SVG no existe");
+        }
+
+        return key;
     }
 }

@@ -61,7 +61,7 @@ public class HttpPostManager {
                 OkHttpClient client = new OkHttpClient.Builder().connectTimeout(1, TimeUnit.MINUTES).build();
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-                RequestBody requestBody = RequestBody.create(JSON, jsonObject.toString());
+                RequestBody requestBody = RequestBody.create(jsonObject.toString(), JSON);
                 Request request = new Request.Builder()
                         .url(url)
                         .post(requestBody)
@@ -89,36 +89,39 @@ public class HttpPostManager {
 
     public static void sendPostImageRequest(String key,String url, JSONObject jsonObject, OnResponseListener listener) {
         // Use a new thread for network operations
-        new Thread(() -> {
-            try {
-                OkHttpClient client = new OkHttpClient.Builder().connectTimeout(1, TimeUnit.MINUTES).build();
-                MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-                RequestBody requestBody = RequestBody.create(JSON, jsonObject.toString());
-                Request request = new Request.Builder()
-                        .url(url)
-                        .header("Authorization","Bearer "+key)
-                        .post(requestBody)
-                        .build();
+        if (key == null) {
+            key = "xd";
+        }
 
-                Response response = client.newCall(request).execute();
-                if (response.isSuccessful()) {
-                    final String responseBody = response.body().string();
+        try {
+            OkHttpClient client = new OkHttpClient.Builder().connectTimeout(1, TimeUnit.MINUTES).build();
+            MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-                    // Use a handler to post back to the main thread for UI updates
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        listener.onResponse(responseBody);
-                    });
-                } else {
-                    throw new Exception("Request failed: " + response.code());
-                }
-            } catch (Exception e) {
-                // Use a handler to post back to the main thread for error handling
+            RequestBody requestBody = RequestBody.create(JSON, jsonObject.toString());
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization","Bearer "+ key)
+                    .post(requestBody)
+                    .build();
+
+            Response response = client.newCall(request).execute();
+            if (response.isSuccessful()) {
+                final String responseBody = response.body().string();
+
+                // Use a handler to post back to the main thread for UI updates
                 new Handler(Looper.getMainLooper()).post(() -> {
-                    listener.onError(e);
+                    listener.onResponse(responseBody);
                 });
+            } else {
+                throw new Exception("Request failed: " + response.code());
             }
-        }).start();
+        } catch (Exception e) {
+            // Use a handler to post back to the main thread for error handling
+            new Handler(Looper.getMainLooper()).post(() -> {
+                listener.onError(e);
+            });
+        }
     }
 
 
